@@ -1,65 +1,56 @@
-import { Link } from "react-router-dom";
-import Button from "../components/Button";
-import { CheckCircle, Calendar, ArrowRight, Flower } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { CheckCircle2, ArrowRight, Flower2 } from "lucide-react";
+import Button from "../components/ui/Button";
+import Card from "../components/ui/Card";
 
 const Success = () => {
+  const location = useLocation();
+  const order = location.state?.order;
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50/50 via-white to-sky-50/30 p-6 font-sans">
-      <div className="bg-white rounded-[32px] border border-pink-100/20 shadow-xl p-8 md:p-12 text-center max-w-lg w-full space-y-6 md:space-y-8">
-        
-        {/* Animated Checkmark Circle */}
-        <div className="relative w-24 h-24 bg-pink-50 rounded-full flex items-center justify-center mx-auto text-primary border border-pink-100">
-          <CheckCircle size={44} className="stroke-[1.5]" />
-          <div className="absolute inset-0 rounded-full border-4 border-primary/20 animate-ping opacity-75" />
+    <div className="flex-1 flex items-center justify-center bg-gradient-page px-4 py-10">
+      <Card padding="p-8 sm:p-10" className="relative overflow-hidden text-center max-w-md w-full space-y-6 animate-fade-up">
+        <Flower2 size={110} strokeWidth={1} className="absolute -bottom-6 -right-6 text-primary/15 pointer-events-none" />
+
+        <div className="relative w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto text-green-600 border border-green-200">
+          <CheckCircle2 size={32} />
         </div>
 
-        <div className="space-y-3">
-          <span className="text-[10px] uppercase font-bold tracking-widest text-primary bg-pink-50 px-3 py-1 rounded-full border border-pink-100/50">
-            Success
-          </span>
-          <h2 className="font-serif text-3xl md:text-4xl font-bold text-gray-800">
-            Order Placed!
-          </h2>
-          <p className="text-gray-500 text-sm leading-relaxed max-w-sm mx-auto">
-            Thank you for shopping with <span className="font-semibold text-gray-700">Floral Bloom & Brew</span>. Your handcrafted arrangement is being carefully assembled.
+        <div className="relative space-y-2">
+          <h2 className="text-2xl font-bold text-heading">Thank You!</h2>
+          <p className="text-sm text-muted leading-relaxed">
+            Your order has been placed and is being carefully assembled by our florists.
           </p>
         </div>
 
-        {/* Info card */}
-        <div className="bg-pink-50/30 border border-pink-100/30 rounded-2xl p-5 text-left flex gap-4 items-center">
-          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-primary border border-pink-100/40">
-            <Calendar size={18} />
+        {order && (
+          <div className="relative flex items-center justify-between bg-background border border-border rounded-lg p-4 text-left">
+            <div>
+              <p className="text-[10px] font-semibold text-muted uppercase tracking-wide">Order ID</p>
+              <p className="text-sm font-bold text-heading">#{order.id}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-semibold text-muted uppercase tracking-wide">Total</p>
+              <p className="text-sm font-bold text-primary-dark">Rs. {Number(order.total).toLocaleString()}</p>
+            </div>
           </div>
-          <div className="space-y-0.5">
-            <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Estimated Delivery</h4>
-            <p className="text-xs text-gray-500 font-medium">Same-day delivery (within Kathmandu Valley) or custom schedule.</p>
-          </div>
-        </div>
+        )}
 
-        {/* Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 pt-2">
-          <Link to="/orders" className="flex-1">
-            <Button className="w-full font-bold shadow-md shadow-pink-100 flex justify-center items-center gap-1.5 py-4">
-              <span>View My Orders</span>
-              <ArrowRight size={16} />
+        <p className="relative text-xs text-muted">Estimated delivery: same-day within Kathmandu Valley.</p>
+
+        <div className="relative flex flex-col sm:flex-row gap-3 pt-1">
+          <Link to={order ? `/orders/${order.id}/tracking` : "/orders"} className="flex-1">
+            <Button className="w-full flex items-center justify-center gap-1.5">
+              Track Order <ArrowRight size={15} />
             </Button>
           </Link>
           <Link to="/products" className="flex-1">
-            <Button variant="outline" className="w-full font-bold py-4">
-              Continue Shopping
-            </Button>
+            <Button variant="white" className="w-full">Continue Shopping</Button>
           </Link>
         </div>
-
-        {/* Mini Logo footer */}
-        <div className="flex items-center gap-1.5 justify-center text-[10px] text-gray-400 font-bold uppercase tracking-wider pt-2">
-          <Flower size={12} />
-          <span>Floral Bloom & Brew</span>
-        </div>
-
-      </div>
+      </Card>
     </div>
   );
 };
 
-export default Success;
+export default Success;
