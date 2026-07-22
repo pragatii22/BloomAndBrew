@@ -2,3 +2,8 @@
 /dist
 .env
 .env.local
+
+# Uploaded product images are user-generated content, not source —
+# keep the folder (multer needs it to exist) but not its contents.
+/uploads/*
+!/uploads/.gitkeep
