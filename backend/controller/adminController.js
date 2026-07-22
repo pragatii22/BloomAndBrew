@@ -1,5 +1,4 @@
 const pool = require('../database/db');
-
 // Real aggregate numbers for the admin dashboard — no mocked stats.
 const getStats = async (req, res) => {
     try {
@@ -14,7 +13,6 @@ const getStats = async (req, res) => {
                  FROM orders`
             )
         ]);
-
         res.json({
             totalProducts: productsCount.rows[0].count,
             totalUsers: usersCount.rows[0].count,
