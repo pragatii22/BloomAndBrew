@@ -1,154 +1,109 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { User, Mail, Lock } from "lucide-react";
 import { RegisterUser } from "../service/api";
-import Input from "../components/Input";
-import Button from "../components/Button";
-import { Flower } from "lucide-react";
+import Input from "../components/ui/Input";
+import Button from "../components/ui/Button";
+import AuthLayout from "../components/auth/AuthLayout";
+import AuthVisualPanel from "../components/auth/AuthVisualPanel";
 import registerImage from "../assets/images/register.png";
 
 const Register = () => {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
   const [loading, setLoading] = useState(false);
 
-  const register = async () => {
-    if (!name || !email || !password || !confirmPassword) {
-      return toast.error("Please fill all fields 🌸");
-    }
+  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
-    if (password !== confirmPassword) {
-      return toast.error("Passwords do not match 🌸");
-    }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name || !form.email || !form.password || !form.confirmPassword)
+      return toast.error("Please fill all fields");
+    if (form.password.length < 6)
+      return toast.error("Password must be at least 6 characters");
+    if (form.password !== form.confirmPassword)
+      return toast.error("Passwords do not match");
 
     setLoading(true);
     try {
-      const data = {
-        name,
-        email,
-        password,
-      };
-
-      const response = await RegisterUser(data);
-      toast.success(response.data.message || "Registration Successful! Please login.");
+      await RegisterUser({ name: form.name, email: form.email, password: form.password });
+      toast.success("Account created! Please sign in.");
       navigate("/login");
-    } catch (error) {
-      toast.error(
-        error.response?.data?.message || "Registration Failed. Please try again."
-      );
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-pink-50/30 flex items-center justify-center p-4 md:p-8 font-sans">
-      <div className="max-w-6xl w-full bg-white rounded-[32px] shadow-xl overflow-hidden grid lg:grid-cols-12 border border-pink-100/30">
-        
-        {/* Left side: Premium Floral Image */}
-        <div className="hidden lg:block lg:col-span-6 relative bg-pink-50 overflow-hidden">
-          <img
-            src={registerImage}
-            alt="Beautiful e-commerce flower backdrop"
-            className="w-full h-full object-cover absolute inset-0"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-pink-900/40 via-transparent to-black/10" />
-          <div className="absolute bottom-12 left-12 right-12 text-white space-y-3">
-            <h2 className="font-serif text-4xl font-bold leading-tight drop-shadow-md">
-              Join Our <br />
-              Floral Community.
-            </h2>
-            <p className="text-white/90 text-sm max-w-sm drop-shadow">
-              Create an account to track your orders, manage your cart, and enjoy members-only promotions.
-            </p>
-          </div>
-        </div>
-
-        {/* Right side: Modern Register Card */}
-        <div className="col-span-12 lg:col-span-6 p-8 md:p-16 flex flex-col justify-center bg-white">
-          <div className="max-w-md w-full mx-auto space-y-6">
-            
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 group w-fit">
-              <div className="w-9 h-9 rounded-full bg-pink-100 flex items-center justify-center text-primary group-hover:rotate-12 transition-transform duration-300">
-                <Flower size={18} className="fill-current" />
-              </div>
-              <span className="font-serif text-xl font-bold tracking-tight text-gray-800">
-                Floral <span className="text-primary font-sans text-lg">Bloom</span>
-              </span>
-            </Link>
-
-            <div className="space-y-2">
-              <h1 className="font-serif text-4xl font-bold text-gray-800">
-                Create Account
-              </h1>
-              <p className="text-gray-500 text-sm">
-                Register today and bloom your gifting experience.
-              </p>
-            </div>
-
-            <div className="space-y-4 pt-2">
-              <Input
-                label="Full Name"
-                type="text"
-                placeholder="John Doe"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-
-              <Input
-                label="Email Address"
-                type="email"
-                placeholder="john@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-
-              <Input
-                label="Password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-
-              <Input
-                label="Confirm Password"
-                type="password"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && register()}
-              />
-
-              <Button
-                onClick={register}
-                disabled={loading}
-                className="w-full py-4 mt-4 font-bold shadow-pink-100 animate-fade-in"
-              >
-                {loading ? "Registering..." : "Create Account"}
-              </Button>
-            </div>
-
-            <p className="text-center text-sm text-gray-500 pt-4">
-              Already have an account?
-              <Link
-                to="/login"
-                className="text-primary hover:text-primary-hover font-semibold ml-1.5 underline underline-offset-4 decoration-pink-200"
-              >
-                Login
-              </Link>
-            </p>
-
-          </div>
-        </div>
-
+    <AuthLayout
+      visual={
+        <AuthVisualPanel
+          image={registerImage}
+          tone="pink"
+          title="Join our floral family"
+          subtitle="Create an account to unlock same-day delivery, saved addresses and order tracking."
+        />
+      }
+    >
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-heading">Create Account</h1>
+        <p className="text-sm text-muted mt-1">Start your floral journey today</p>
       </div>
-    </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Input
+          label="Full Name"
+          type="text"
+          placeholder="Your full name"
+          value={form.name}
+          onChange={set("name")}
+          icon={User}
+          required
+        />
+        <Input
+          label="Email Address"
+          type="email"
+          placeholder="you@example.com"
+          value={form.email}
+          onChange={set("email")}
+          icon={Mail}
+          required
+        />
+        <Input
+          label="Password"
+          type="password"
+          placeholder="Minimum 6 characters"
+          value={form.password}
+          onChange={set("password")}
+          icon={Lock}
+          required
+        />
+        <Input
+          label="Confirm Password"
+          type="password"
+          placeholder="Re-enter your password"
+          value={form.confirmPassword}
+          onChange={set("confirmPassword")}
+          icon={Lock}
+          required
+        />
+
+        <Button type="submit" size="lg" loading={loading} className="w-full mt-1">
+          Register
+        </Button>
+      </form>
+
+      <p className="text-center text-sm text-muted mt-6">
+        Already have an account?{" "}
+        <Link to="/login" className="text-primary-dark font-semibold hover:underline">
+          Sign in
+        </Link>
+      </p>
+    </AuthLayout>
   );
 };
 
-export default Register;
+export default Register;
