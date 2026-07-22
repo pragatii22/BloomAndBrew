@@ -1,16 +1,17 @@
 import { Navigate } from "react-router-dom";
+import { useAuth } from "../context/useAuth";
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {
+    const { isAuthenticated, isAdmin } = useAuth();
 
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
-
-    if (!token) {
-        return <Navigate to="/login" />;
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
     }
 
-    if (adminOnly && role !== "admin") {
-        return <Navigate to="/login" />;
+    // Already logged in but wrong role — send them back into the store
+    // instead of bouncing to Login again.
+    if (adminOnly && !isAdmin) {
+        return <Navigate to="/" replace />;
     }
 
     return children;
