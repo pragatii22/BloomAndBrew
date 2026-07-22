@@ -1,172 +1,168 @@
-import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
-import toast from "react-hot-toast";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-import ProductCard from "../components/ProductCard";
-import api from "../service/api";
-import { Search, SlidersHorizontal, ArrowUpDown } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Search, SlidersHorizontal, X } from "lucide-react";
+import ProductCard from "../components/store/ProductCard";
+import ProductFilters from "../components/store/ProductFilters";
+import Loader from "../components/ui/Loader";
+import Select from "../components/ui/Select";
+import Button from "../components/ui/Button";
+import { getProducts } from "../service/api";
+import { getCategory } from "../lib/categorize";
+
+const DEFAULT_PRICE_LIMIT = 10000;
 
 const Products = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
-  const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [sortBy, setSortBy] = useState("default");
-  const location = useLocation();
+  const [loading, setLoading] = useState(true);
+  const [active, setActive] = useState("All");
+  const [sort, setSort] = useState("default");
+  const [priceLimit, setPriceLimit] = useState(DEFAULT_PRICE_LIMIT);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // The URL search param is the single source of truth for the query —
+  // no local state to keep in sync with it.
+  const query = searchParams.get("search") || "";
 
   useEffect(() => {
-    fetchProducts();
+    getProducts()
+      .then((r) => setProducts(r.data || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const querySearch = params.get("search");
-    if (querySearch) {
-      setSearch(querySearch);
-    }
-  }, [location]);
+  const maxPrice = useMemo(
+    () => Math.max(DEFAULT_PRICE_LIMIT, ...products.map((p) => Number(p.price) || 0)),
+    [products]
+  );
 
-  const fetchProducts = async () => {
-    try {
-      const response = await api.get("/products");
-      setProducts(response.data.products || response.data || []);
-    } catch (error) {
-      toast.error("Couldn't load products 🌸");
+  const filtered = useMemo(() => {
+    let list = products;
+
+    if (active !== "All") list = list.filter((p) => getCategory(p) === active);
+
+    if (query.trim()) {
+      const q = query.trim().toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          (p.description || "").toLowerCase().includes(q) ||
+          getCategory(p).toLowerCase().includes(q)
+      );
     }
+
+    list = list.filter((p) => Number(p.price) <= priceLimit);
+
+    if (sort === "price-asc") list = [...list].sort((a, b) => a.price - b.price);
+    if (sort === "price-desc") list = [...list].sort((a, b) => b.price - a.price);
+    if (sort === "name") list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+
+    return list;
+  }, [products, active, query, sort, priceLimit]);
+
+  const clearFilters = () => {
+    setActive("All");
+    setSort("default");
+    setPriceLimit(maxPrice);
+    setSearchParams({});
   };
 
-  const getCategory = (name) => {
-    const n = name.toLowerCase();
-    if (n.includes("rose")) return "Roses";
-    if (n.includes("tulip")) return "Tulips";
-    if (n.includes("lavender")) return "Lavender";
-    if (n.includes("lily")) return "Lilies";
-    return "Bouquets";
-  };
-
-  // Filter products by search and category
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) || 
-                          (product.description && product.description.toLowerCase().includes(search.toLowerCase()));
-    
-    const category = getCategory(product.name);
-    const matchesCategory = selectedCategory === "All" || category === selectedCategory;
-
-    return matchesSearch && matchesCategory;
-  });
-
-  // Sort products
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    if (sortBy === "priceLowHigh") {
-      return a.price - b.price;
-    }
-    if (sortBy === "priceHighLow") {
-      return b.price - a.price;
-    }
-    if (sortBy === "nameAsc") {
-      return a.name.localeCompare(b.name);
-    }
-    return 0; // default order
-  });
-
-  const categories = ["All", "Roses", "Tulips", "Lavender", "Lilies", "Bouquets"];
+  const hasFilters = active !== "All" || query || sort !== "default" || priceLimit < maxPrice;
 
   return (
-    <div className="bg-background min-h-screen flex flex-col font-sans">
-      <Navbar />
+    <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
+      <div className="grid lg:grid-cols-[220px_1fr] gap-8">
+        {/* Sidebar */}
+        <aside className="hidden lg:block">
+          <ProductFilters
+            active={active}
+            onCategoryChange={setActive}
+            maxPrice={maxPrice}
+            priceLimit={priceLimit}
+            onPriceChange={setPriceLimit}
+          />
+        </aside>
 
-      <div className="flex-1">
-        {/* Editorial Header */}
-        <div className="bg-gradient-to-br from-pink-50 via-white to-sky-50 py-16 md:py-20 text-center border-b border-pink-100/30">
-          <div className="max-w-3xl mx-auto px-6 space-y-4">
-            <span className="text-primary font-bold text-xs uppercase tracking-widest bg-pink-50 border border-pink-100/50 px-4 py-1.5 rounded-full">
-              Full Catalogue
-            </span>
-            <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-gray-800 tracking-tight leading-tight">
-              Our Curated Collections
-            </h1>
-            <p className="text-gray-500 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
-              Explore custom floral arrangements handcrafted by master designers. Sourced daily, designed with artistry.
-            </p>
+        {/* Mobile filter drawer */}
+        {filtersOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <div className="absolute inset-0 bg-navy/40" onClick={() => setFiltersOpen(false)} />
+            <div className="absolute left-0 top-0 bottom-0 w-72 bg-white p-5 overflow-y-auto animate-fade-in">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-sm font-bold text-heading">Filters</h3>
+                <button onClick={() => setFiltersOpen(false)}><X size={18} /></button>
+              </div>
+              <ProductFilters
+                active={active}
+                onCategoryChange={(c) => { setActive(c); setFiltersOpen(false); }}
+                maxPrice={maxPrice}
+                priceLimit={priceLimit}
+                onPriceChange={setPriceLimit}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Toolbar & Filters */}
-        <div className="max-w-7xl mx-auto px-6 py-10 space-y-8">
-          <div className="flex flex-col md:flex-row gap-5 justify-between items-center bg-white p-6 rounded-[28px] shadow-sm border border-pink-100/25">
-            {/* Search Input */}
-            <div className="relative w-full md:w-96 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <h1 className="text-2xl font-bold text-heading">All Bouquets</h1>
+          </div>
+          <p className="text-sm text-muted mb-5">
+            {loading ? "Loading…" : `${filtered.length} arrangement${filtered.length !== 1 ? "s" : ""} available`}
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
+            <div className="relative flex-1">
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
               <input
                 type="text"
-                placeholder="Search flowers or arrangements..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full border border-pink-100/80 rounded-full pl-11 pr-5 py-3.5 text-sm bg-background/50 focus:bg-white focus:outline-none focus:border-primary focus:ring-4 focus:ring-pink-50/50 transition-all duration-350"
+                placeholder="Search roses, bouquets, occasions…"
+                value={query}
+                onChange={(e) => setSearchParams(e.target.value ? { search: e.target.value } : {})}
+                className="w-full pl-10 pr-4 py-2.5 rounded-md border border-border bg-white text-sm text-heading outline-none focus:border-primary-dark focus:ring-2 focus:ring-primary/30 transition-colors"
               />
             </div>
 
-            {/* Sorting Dropdown */}
-            <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-                <ArrowUpDown size={14} /> Sort By:
-              </span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="border border-pink-100/80 rounded-full px-5 py-3.5 text-sm bg-white focus:outline-none focus:border-primary transition-colors cursor-pointer"
-              >
-                <option value="default">Default Catalog</option>
-                <option value="priceLowHigh">Price: Low to High</option>
-                <option value="priceHighLow">Price: High to Low</option>
-                <option value="nameAsc">Alphabetical: A to Z</option>
-              </select>
-            </div>
-          </div>
+            <Select value={sort} onChange={(e) => setSort(e.target.value)} className="sm:w-52">
+              <option value="default">Sort: Default</option>
+              <option value="price-asc">Price: Low → High</option>
+              <option value="price-desc">Price: High → Low</option>
+              <option value="name">Name: A → Z</option>
+            </Select>
 
-          {/* Category Tabs */}
-          <div className="flex flex-wrap gap-2.5 pb-2 justify-center md:justify-start">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-6 py-2.5 rounded-full text-sm font-semibold tracking-wide border transition-all duration-300 transform active:scale-95 cursor-pointer ${
-                  selectedCategory === cat
-                    ? "bg-primary text-white border-primary shadow-sm hover:shadow"
-                    : "bg-white text-gray-600 border-pink-100/40 hover:bg-pink-50/40 hover:text-primary"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
+            <button
+              onClick={() => setFiltersOpen(true)}
+              className="lg:hidden flex items-center gap-2 justify-center px-4 py-2.5 rounded-md border border-border text-sm font-semibold text-body"
+            >
+              <SlidersHorizontal size={14} /> Filters
+            </button>
 
-          {/* Products Grid */}
-          <div className="pb-20">
-            {sortedProducts.length > 0 ? (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                {sortedProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white rounded-[32px] border border-pink-100/25 p-20 text-center shadow-sm">
-                <span className="text-5xl block mb-4">🌼</span>
-                <h3 className="font-serif text-2xl font-bold text-gray-800">
-                  No Flowers Found
-                </h3>
-                <p className="text-gray-500 text-sm mt-2 max-w-sm mx-auto">
-                  We couldn't find matches for "{search}" in {selectedCategory}. Try adjusting your keywords or category filters.
-                </p>
-              </div>
+            {hasFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="shrink-0">
+                <X size={13} /> Clear
+              </Button>
             )}
           </div>
+
+          {loading ? (
+            <Loader text="Loading flowers…" />
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-20 space-y-2">
+              <h2 className="text-lg font-bold text-heading">No flowers found</h2>
+              <p className="text-muted text-sm">Try adjusting your search or filters.</p>
+              <button onClick={clearFilters} className="mt-2 text-primary-dark font-semibold text-sm hover:underline">
+                Clear all filters
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+              {filtered.map((p) => <ProductCard key={p.id} product={p} />)}
+            </div>
+          )}
         </div>
       </div>
-
-      <Footer />
     </div>
   );
 };
 
-export default Products;
+export default Products;
