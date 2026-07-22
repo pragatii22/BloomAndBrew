@@ -2,11 +2,22 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { createUser, getUserByEmail } = require('../model/userModel');
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const register = async (req, res) => {
     try {
 
         const { name, email, password } = req.body;
 
+        if (!name || !name.trim()) {
+            return res.status(400).json({ message: "Name is required" });
+        }
+        if (!email || !EMAIL_REGEX.test(email)) {
+            return res.status(400).json({ message: "A valid email is required" });
+        }
+        if (!password || password.length < 6) {
+            return res.status(400).json({ message: "Password must be at least 6 characters" });
+        }
 
         // check if email already exists
         const existingUser = await getUserByEmail(email);
@@ -31,10 +42,12 @@ const register = async (req, res) => {
             'user'
         );
 
+        // never leak the password hash back to the client
+        const { password: _pw, ...safeUser } = user;
 
-        res.json({
+        res.status(201).json({
             message: "User registered",
-            user
+            user: safeUser
         });
 
 
@@ -50,6 +63,10 @@ const register = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ message: "Email and password are required" });
+        }
 
         const user = await getUserByEmail(email);
 
