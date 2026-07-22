@@ -51,10 +51,10 @@ const addToCart = async (userId, productId, quantity) => {
 
     return result.rows[0];
 };
-const removeFromCart = async (cartId) => {
+const removeFromCart = async (cartId, userId) => {
     const result = await pool.query(
-        `DELETE FROM cart WHERE id = $1 RETURNING *`,
-        [cartId]
+        `DELETE FROM cart WHERE id = $1 AND user_id = $2 RETURNING *`,
+        [cartId, userId]
     );
 
     return result.rows[0];
