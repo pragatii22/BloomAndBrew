@@ -24,6 +24,10 @@ const addItem = async (req, res) => {
         const userId = req.user.id;
         const { product_id, quantity } = req.body;
 
+        if (!product_id || !Number.isFinite(Number(quantity)) || Number(quantity) === 0) {
+            return res.status(400).json({ message: "A valid product_id and non-zero quantity are required" });
+        }
+
         const item = await addToCart(userId, product_id, quantity);
 
         res.json({
@@ -38,8 +42,13 @@ const addItem = async (req, res) => {
 const removeItem = async (req, res) => {
     try {
         const { id } = req.params;
+        const userId = req.user.id;
 
-        const item = await removeFromCart(id);
+        const item = await removeFromCart(id, userId);
+
+        if (!item) {
+            return res.status(404).json({ message: "Cart item not found" });
+        }
 
         res.json({
             message: "Removed from cart",
